@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  mcp-spaced-repetition:
+    build: .
+    container_name: mcp-spaced-repetition
+    restart: unless-stopped
+    volumes:
+      - mcp-spaced-repetition-data:/data
+    environment:
+      - SPACED_REPETITION_DATA_PATH=/data/cards.json
+    networks:
+      - librechat_default
+    stdin_open: true
+    tty: true
+
+volumes:
+  mcp-spaced-repetition-data:
+
+networks:
+  librechat_default:
+    external: true

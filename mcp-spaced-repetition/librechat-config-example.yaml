@@ -1,0 +1,25 @@
+# Example LibreChat configuration for the spaced repetition MCP server
+# Add this to your librechat.yaml file
+
+mcpServers:
+  spaced-repetition:
+    type: stdio
+    command: docker
+    args:
+      - exec
+      - -i
+      - mcp-spaced-repetition
+      - python
+      - -m
+      - mcp_spaced_repetition.server
+    description: "Spaced repetition learning system with fact and concept cards"
+    
+  # Alternative: Run directly without Docker
+  spaced-repetition-local:
+    type: stdio
+    command: python
+    args:
+      - -m
+      - mcp_spaced_repetition.server
+    env:
+      SPACED_REPETITION_DATA_PATH: /path/to/your/cards.json

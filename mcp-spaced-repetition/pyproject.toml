@@ -1,0 +1,17 @@
+[project]
+name = "mcp-spaced-repetition"
+version = "0.1.0"
+description = "MCP server for spaced repetition learning in LibreChat"
+requires-python = ">=3.9"
+dependencies = [
+    "mcp>=1.0.0",
+    "pydantic>=2.0",
+    "aiofiles>=23.0",
+]
+
+[project.scripts]
+mcp-spaced-repetition = "mcp_spaced_repetition.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
