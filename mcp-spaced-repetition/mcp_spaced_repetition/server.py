@@ -90,7 +90,7 @@ class SpacedRepetitionServer:
                 ),
                 types.Tool(
                     name="update_card",
-                    description="Update a card after review",
+                    description="Update the content of a card without affecting its schedule",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -98,26 +98,45 @@ class SpacedRepetitionServer:
                                 "type": "string",
                                 "description": "ID of the card to update"
                             },
+                            "question": {
+                                "type": "string",
+                                "description": "Updated question (for fact cards)"
+                            },
+                            "answer": {
+                                "type": "string",
+                                "description": "Updated answer (for fact cards)"
+                            },
+                            "concept": {
+                                "type": "string",
+                                "description": "Updated concept (for concept cards)"
+                            },
+                            "tags": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Updated tags for the card"
+                            }
+                        },
+                        "required": ["card_id"]
+                    }
+                ),
+                types.Tool(
+                    name="review_card",
+                    description="Review a card and reschedule it based on difficulty rating. Always ask the user to rate the difficulty: 1=Again (failed), 2=Hard, 3=Good, 4=Easy",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "card_id": {
+                                "type": "string",
+                                "description": "ID of the card to review"
+                            },
                             "rating": {
                                 "type": "integer",
                                 "description": "Difficulty rating: 1=Again, 2=Hard, 3=Good, 4=Easy",
                                 "minimum": 1,
                                 "maximum": 4
-                            },
-                            "question": {
-                                "type": "string",
-                                "description": "Updated question (optional)"
-                            },
-                            "answer": {
-                                "type": "string",
-                                "description": "Updated answer (optional, for fact cards)"
-                            },
-                            "concept": {
-                                "type": "string",
-                                "description": "Updated concept (optional, for concept cards)"
                             }
                         },
-                        "required": ["card_id"]
+                        "required": ["card_id", "rating"]
                     }
                 )
             ]
@@ -138,6 +157,8 @@ class SpacedRepetitionServer:
                     result = await self._get_next_due_card(arguments or {})
                 elif name == "update_card":
                     result = await self._update_card(arguments or {})
+                elif name == "review_card":
+                    result = await self._review_card(arguments or {})
                 else:
                     result = {"error": f"Unknown tool: {name}"}
                 
@@ -230,37 +251,72 @@ class SpacedRepetitionServer:
         if not card:
             return {"error": "Card not found"}
         
-        # Update card content if provided
+        updated_fields = []
+        
+        # Update card content based on card type
         if "question" in args and card.card_type == CardType.FACT:
             card.question = args["question"]
+            updated_fields.append("question")
         if "answer" in args and card.card_type == CardType.FACT:
             card.answer = args["answer"]
+            updated_fields.append("answer")
         if "concept" in args and card.card_type == CardType.CONCEPT:
             card.concept = args["concept"]
+            updated_fields.append("concept")
+        if "tags" in args:
+            card.tags = args["tags"]
+            updated_fields.append("tags")
         
-        # Process review if rating provided
-        if "rating" in args:
-            rating = Rating(args["rating"])
-            
-            # Schedule next review using FSRS
-            card = self.fsrs.review(card, rating)
-            
-            # Record review
-            review = Review(
-                card_id=card_id,
-                rating=rating,
-                reviewed_at=datetime.now(timezone.utc)
-            )
-            card.reviews.append(review)
+        if not updated_fields:
+            return {"error": "No valid fields to update"}
         
         await self.storage.update_card(card)
         
         return {
             "success": True,
-            "message": "Card updated successfully",
+            "message": f"Card updated successfully. Modified fields: {', '.join(updated_fields)}",
+            "card_id": card_id
+        }
+    
+    async def _review_card(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        card_id = args.get("card_id")
+        if not card_id:
+            return {"error": "card_id is required"}
+        
+        rating_value = args.get("rating")
+        if not rating_value:
+            return {"error": "rating is required"}
+        
+        card = await self.storage.get_card(card_id)
+        if not card:
+            return {"error": "Card not found"}
+        
+        try:
+            rating = Rating(rating_value)
+        except ValueError:
+            return {"error": "Invalid rating. Must be 1 (Again), 2 (Hard), 3 (Good), or 4 (Easy)"}
+        
+        # Schedule next review using FSRS
+        card = self.fsrs.review(card, rating)
+        
+        # Record review
+        review = Review(
+            card_id=card_id,
+            rating=rating,
+            reviewed_at=datetime.now(timezone.utc)
+        )
+        card.reviews.append(review)
+        
+        await self.storage.update_card(card)
+        
+        return {
+            "success": True,
+            "message": f"Card reviewed with rating {rating.value}",
             "next_due": card.due.isoformat() if card.due else None,
             "stability": card.stability,
-            "difficulty": card.difficulty
+            "difficulty": card.difficulty,
+            "state": card.state,
+            "interval_days": card.scheduled_days
         }
     
     async def run(self):

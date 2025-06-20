@@ -133,14 +133,21 @@ Get cards that are due for review.
 - `limit` (optional, default: 1): Maximum number of cards to return
 
 ### `update_card`
-Update a card after review or modify its content.
+Update the content of a card without affecting its schedule.
 
 **Parameters**:
 - `card_id` (required): ID of the card to update
-- `rating` (optional): Difficulty rating (1=Again, 2=Hard, 3=Good, 4=Easy)
 - `question` (optional): Updated question (fact cards only)
 - `answer` (optional): Updated answer (fact cards only)
 - `concept` (optional): Updated concept (concept cards only)
+- `tags` (optional): Updated tags array
+
+### `review_card`
+Review a card and reschedule it based on difficulty rating.
+
+**Parameters**:
+- `card_id` (required): ID of the card to review
+- `rating` (required): Difficulty rating (1=Again, 2=Hard, 3=Good, 4=Easy)
 
 ## Usage Examples
 
