@@ -1,0 +1,14 @@
+services:
+  api:
+    # Build from our extended Dockerfile instead of using the default image
+    build:
+      context: .
+      dockerfile: Dockerfile.extended
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+      # Hot-reload for development - mount the MCP server code
+      - ./mcp-spaced-repetition:/app/tools/mcp-spaced-repetition:ro
+      # Persist the spaced repetition data - configurable location
+      - ${MCP_DATA_PATH:-./mcp-data}:/data
+    environment:
+      - SPACED_REPETITION_DATA_PATH=/data/cards.json

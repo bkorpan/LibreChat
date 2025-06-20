@@ -52,7 +52,6 @@ USER node
 
 **docker-compose.override.yml**:
 ```yaml
-version: '3.8'
 services:
   api:
     build:
@@ -61,11 +60,9 @@ services:
     volumes:
       - ./librechat.yaml:/app/librechat.yaml:ro
       - ./mcp-spaced-repetition:/app/tools/mcp-spaced-repetition:ro
-      - mcp-spaced-repetition-data:/data
+      - ${MCP_DATA_PATH:-./mcp-data}:/data
     environment:
       - SPACED_REPETITION_DATA_PATH=/data/cards.json
-volumes:
-  mcp-spaced-repetition-data:
 ```
 
 **librechat.yaml**:
@@ -173,18 +170,44 @@ Review a card and reschedule it based on difficulty rating.
 
 ## Data Persistence
 
-Cards are stored in a Docker volume (`mcp-spaced-repetition-data`) at `/data/cards.json`. This ensures your cards persist across container restarts.
+Cards are stored in a configurable location on your host system.
 
-### Backup
-```bash
-docker run --rm -v mcp-spaced-repetition-data:/data -v $(pwd):/backup alpine \
-  tar czf /backup/cards-backup.tar.gz -C /data .
+### Configuring Storage Location
+
+By default, cards are stored in `./mcp-data/cards.json` relative to your LibreChat directory. You can change this by setting the `MCP_DATA_PATH` environment variable:
+
+**Option 1: In your .env file**
+```
+MCP_DATA_PATH=/path/to/your/cards/directory
 ```
 
-### Restore
+**Option 2: When running docker-compose**
 ```bash
-docker run --rm -v mcp-spaced-repetition-data:/data -v $(pwd):/backup alpine \
-  tar xzf /backup/cards-backup.tar.gz -C /data
+MCP_DATA_PATH=/home/user/my-cards docker compose up -d
+```
+
+**Option 3: Export the variable**
+```bash
+export MCP_DATA_PATH=/home/user/my-cards
+docker compose up -d
+```
+
+### Default Location
+If `MCP_DATA_PATH` is not set, cards will be stored in:
+- `./mcp-data/cards.json` (relative to LibreChat directory)
+
+### Backup and Restore
+
+Since the data is now in a regular directory, you can simply:
+
+**Backup**
+```bash
+cp ${MCP_DATA_PATH:-./mcp-data}/cards.json cards-backup-$(date +%Y%m%d).json
+```
+
+**Restore**
+```bash
+cp cards-backup-20240620.json ${MCP_DATA_PATH:-./mcp-data}/cards.json
 ```
 
 ## Development
