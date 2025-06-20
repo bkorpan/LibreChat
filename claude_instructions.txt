@@ -1,0 +1,27 @@
+MCP (model context protocol) spaced repetition server for LibreChat
+
+The server should expose the following tools:
+- add_card
+    - support multiple card types (two to start with, but should be extensible)
+        - fact cards
+            - Simple question, answer pair
+        - concept cards
+            - The card does not have fixed questions and answers, but rather represents a concept
+            - The AI is prompted to generate varied understanding-testing questions when presenting the card to the user
+                - Start with one question
+                - The user can request more questions
+                - The AI should give feedback on the user's answers
+- remove_card
+    - The user can request the AI to delete a card
+- get_next_due_card
+    - Gets the next due card for review
+- update_card
+    - Provide a difficulty rating (from the user) for scheduling the card for next review
+    - Update the wording of the card for future reference if requested by the user
+        - E.g. if the user is not satisfied with the questions generated for a concept card, they may request an update to the card that they think will result in better questions
+
+Implementation requests:
+- Use the mcp python package to implement the server
+- Store cards in a json file, at a configurable location
+- The server should start and stop with LibreChat (which is being run with Docker)
+- Use FSRS scheduling

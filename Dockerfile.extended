@@ -1,0 +1,36 @@
+# Extend the official LibreChat image with Python MCP support
+FROM ghcr.io/danny-avila/librechat-dev:latest
+
+# Switch to root to install packages
+USER root
+
+# Install Python and pip
+RUN apk add --no-cache python3 py3-pip python3-dev
+
+# Create a virtual environment to avoid system package conflicts
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies for the MCP server
+COPY mcp-spaced-repetition/requirements.txt /tmp/requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r /tmp/requirements.txt
+
+# Create tools directory
+RUN mkdir -p /app/tools
+
+# Copy the MCP server code
+COPY mcp-spaced-repetition /app/tools/mcp-spaced-repetition
+
+# Install the MCP server package
+RUN cd /app/tools/mcp-spaced-repetition && \
+    pip install -e .
+
+# Create a simple wrapper script that activates venv and runs the server
+RUN printf '#!/bin/sh\nexec /opt/venv/bin/python -m mcp_spaced_repetition.server\n' > /app/tools/spaced_repetition_server.sh && \
+    chmod +x /app/tools/spaced_repetition_server.sh
+
+# Switch back to the original user
+USER node
+
+# The rest is inherited from the base image
