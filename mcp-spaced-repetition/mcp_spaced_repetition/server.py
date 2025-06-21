@@ -234,6 +234,7 @@ class SpacedRepetitionServer:
                 card_data["answer"] = card.answer
             else:
                 card_data["concept"] = card.concept
+                card_data["ai_prompt"] = "Generate 2-3 varied, specific questions to test understanding of this concept. Ask different types of questions (definition, application, comparison, examples). Don't provide the answers - the user should answer them briefly to demonstrate comprehension."
             
             if card.tags:
                 card_data["tags"] = card.tags
